@@ -31,7 +31,7 @@ The following command is executed in the docker image
 
 3. install text editor (nano, vi, vim ...) and change apt source list
 
-4. install curl and git
+4. install curl ,git and build tools(make, gcc, g++...)
 
 5. install node.js (version: V15.x.x)
 
