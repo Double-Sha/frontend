@@ -7,20 +7,22 @@ import ProDescriptions from '@ant-design/pro-descriptions';
 import CreateForm from './components/CreateForm';
 import UpdateForm, { FormValueType } from './components/UpdateForm';
 import { TableListItem } from './data';
-import { queryRule, updateRule, addRule, removeRule } from './service';
+import { searchemployeeparam, updateRule, addEmployee, removeRule , AddEmployeeParamType, SimpleResponse} from './service';
+import BreadcrumbSeparator from 'antd/lib/breadcrumb/BreadcrumbSeparator';
 
 /**
  * 添加节点
  * @param fields
  */
-const handleAdd = async (fields: TableListItem) => {
+const handleAdd = async (fields: AddEmployeeParamType) => {
   const hide = message.loading('正在添加');
-  try {
-    await addRule({ ...fields });
+  let res = await addEmployee({ ...fields });
+  if (res.meta.code == 0){
     hide();
     message.success('添加成功');
     return true;
-  } catch (error) {
+  }
+  else{
     hide();
     message.error('添加失败请重试！');
     return false;
@@ -78,61 +80,82 @@ const TableList: React.FC<{}> = () => {
   const actionRef = useRef<ActionType>();
   const [row, setRow] = useState<TableListItem>();
   const [selectedRowsState, setSelectedRows] = useState<TableListItem[]>([]);
-  const columns: ProColumns<TableListItem>[] = [
+  const columns: ProColumns<AddEmployeeParamType>[] = [
     {
-      title: '规则名称',
-      dataIndex: 'name',
-      tip: '规则名称是唯一的 key',
-      formItemProps: {
-        rules: [
-          {
-            required: true,
-            message: '规则名称为必填项',
-          },
-        ],
-      },
+      title: '工号',
+      dataIndex: 'employeeId',
+      tip: '员工的唯一Id',
+      sorter: (a:AddEmployeeParamType, b:AddEmployeeParamType) => parseInt(a.employeeId, 0) - parseInt(b.employeeId, 0),
       render: (dom, entity) => {
         return <a onClick={() => setRow(entity)}>{dom}</a>;
       },
     },
     {
-      title: '描述',
-      dataIndex: 'desc',
+      title: '姓名',
+      dataIndex: 'name',
       valueType: 'textarea',
     },
     {
-      title: '服务调用次数',
-      dataIndex: 'callNo',
-      sorter: true,
-      hideInForm: true,
-      renderText: (val: string) => `${val} 万`,
+      title: '科室',
+      dataIndex: 'dep',
     },
     {
-      title: '状态',
-      dataIndex: 'status',
-      hideInForm: true,
+      title: '家庭地址',
+      dataIndex: 'address',
+      valueType: 'textarea',
+    },
+    {
+      title: '考勤班制',
+      dataIndex: 'work_mode',
+      filters:[{text: '弹性工作制', value: '0'},{text: '常日班制', value: '1'},{text: '12小时翻班制', value: '2'}],
+      onFilter: (value, record)=> (record.work_mode == value),
       valueEnum: {
-        0: { text: '关闭', status: 'Default' },
-        1: { text: '运行中', status: 'Processing' },
-        2: { text: '已上线', status: 'Success' },
-        3: { text: '异常', status: 'Error' },
+        '0': { text: '弹性工作制'},
+        '1': { text: '常日班制'},
+        '2': { text: '12小时翻班制'}
       },
     },
     {
-      title: '上次调度时间',
-      dataIndex: 'updatedAt',
-      sorter: true,
-      valueType: 'dateTime',
-      hideInForm: true,
-      renderFormItem: (item, { defaultRender, ...rest }, form) => {
-        const status = form.getFieldValue('status');
-        if (`${status}` === '0') {
-          return false;
-        }
-        if (`${status}` === '3') {
-          return <Input {...rest} placeholder="请输入异常原因！" />;
-        }
-        return defaultRender(item);
+      title: '日常出行方式',
+      dataIndex: 'transpsunny',
+      filters:[{text: '开车', value: '0'},{text: '步行', value: '1'},{text: '公共交通', value: '2'},
+      {text: '骑自行车', value: '3'},{text: '坐班车', value: '4'},{text: '打车', value: '5'},{text: '其它', value: '6'}],
+      onFilter: (value, record)=> (record.transpsunny == value),
+      valueEnum: {
+        '0': { text: '开车'},
+        '1': { text: '步行'},
+        '2': { text: '公共交通'},
+        '3': { text: '骑自行车'},
+        '4': { text: '坐班车'},
+        '5': { text: '打车'},
+        '6': { text: '其它'}
+      },
+    },
+    {
+      title: '雨雪雾天出行方式',
+      dataIndex: 'transpbadweather',
+      filters:[{text: '开车', value: '0'},{text: '步行', value: '1'},{text: '公共交通', value: '2'},
+      {text: '骑自行车', value: '3'},{text: '坐班车', value: '4'},{text: '打车', value: '5'},{text: '其它', value: '6'}],
+      onFilter: (value, record)=> (record.transpbadweather == value),
+      valueEnum: {
+        '0': { text: '开车'},
+        '1': { text: '步行'},
+        '2': { text: '公共交通'},
+        '3': { text: '骑自行车'},
+        '4': { text: '坐班车'},
+        '5': { text: '打车'},
+        '6': { text: '其它'}
+      },
+    },
+    {
+      title: '外地牌照',
+      dataIndex: 'extlpn',
+      filters:[{text: '本地', value: '0'},{text: '外地', value: '1'},{text: '不驾车', value: '2'}],
+      onFilter: (value, record)=> (record.extlpn == value),
+      valueEnum: {
+        '0': { text: '本地'},
+        '1': { text: '外地'},
+        '2': { text: '不驾车'}
       },
     },
     {
@@ -147,10 +170,10 @@ const TableList: React.FC<{}> = () => {
               setStepFormValues(record);
             }}
           >
-            配置
+            编辑
           </a>
           <Divider type="vertical" />
-          <a href="">订阅警报</a>
+          <a href="">删除</a>
         </>
       ),
     },
@@ -158,8 +181,8 @@ const TableList: React.FC<{}> = () => {
 
   return (
     <PageContainer>
-      <ProTable<TableListItem>
-        headerTitle="查询表格"
+      <ProTable<AddEmployeeParamType>
+        headerTitle="员工通勤信息"
         actionRef={actionRef}
         rowKey="key"
         search={{
@@ -170,7 +193,7 @@ const TableList: React.FC<{}> = () => {
             <PlusOutlined /> 新建
           </Button>,
         ]}
-        request={(params, sorter, filter) => queryRule({ ...params, sorter, filter })}
+        request={(params, sorter, filter) => searchemployeeparam({ ...params, sorter, filter })}
         columns={columns}
         rowSelection={{
           onChange: (_, selectedRows) => setSelectedRows(selectedRows),
@@ -181,9 +204,6 @@ const TableList: React.FC<{}> = () => {
           extra={
             <div>
               已选择 <a style={{ fontWeight: 600 }}>{selectedRowsState.length}</a> 项&nbsp;&nbsp;
-              <span>
-                服务调用次数总计 {selectedRowsState.reduce((pre, item) => pre + item.callNo, 0)} 万
-              </span>
             </div>
           }
         >
@@ -196,11 +216,11 @@ const TableList: React.FC<{}> = () => {
           >
             批量删除
           </Button>
-          <Button type="primary">批量审批</Button>
+          <Button type="primary">批量增加</Button>
         </FooterToolbar>
       )}
       <CreateForm onCancel={() => handleModalVisible(false)} modalVisible={createModalVisible}>
-        <ProTable<TableListItem, TableListItem>
+        <ProTable<AddEmployeeParamType, AddEmployeeParamType>
           onSubmit={async (value) => {
             const success = await handleAdd(value);
             if (success) {
