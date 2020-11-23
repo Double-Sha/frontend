@@ -1,57 +1,67 @@
-# Ant Design Pro
+# UAES Code Carnival Project Frontend
 
-This project is initialized with [Ant Design Pro](https://pro.ant.design). Follow is the quick guide for how to use.
+## Steps to build docker image from scratch
 
-## Environment Prepare
+1. intall docker and start
 
-Install `node_modules`:
+```
+curl -fsSL https://get.docker.com | bash -s docker --mirror Aliyun
+```
 
-```bash
+Add user to docker group if you don't want to start the image with root privilege
+
+```
+sudo usermod -aG docker <user_name>
+```
+
+start docker service
+
+```
+sudo service docker start
+```
+
+2. pull ubuntu docker image and start the terminal in the image
+
+```
+docker pull ubuntu:latest
+docker run -i -t ubuntu:latest /bin/bash
+```
+
+The following command is executed in the docker image
+
+3. install text editor (nano, vi, vim ...) and change apt source list
+
+4. install curl ,git and build tools(make, gcc, g++...)
+
+5. install node.js (version: V15.x.x)
+
+```
+curl -sL https://deb.nodesource.com/setup_15.x > node.sh
+chmod +x node.sh
+./node.sh
+apt-get install -y nodejs
+node -v
+```
+
+6. install yarn and tyarn (optional if you use tyarn for package manager)
+```
+npm config set registry https://registry.npm.taobao.org
+npm install yarn tyarn -g
+yarn -v
+```
+
+7. install ant-design-pro
+```
+npm create umi
+```
+then select 'ant-design-pro'
+then select 'Pro V'
+
+8. start the project
+
+```
 npm install
-```
-
-or
-
-```bash
-yarn
-```
-
-## Provided Scripts
-
-Ant Design Pro provides some useful script to help you quick start and build with web project, code style check and test.
-
-Scripts provided in `package.json`. It's safe to modify or add additional script:
-
-### Start project
-
-```bash
 npm start
 ```
 
-### Build project
 
-```bash
-npm run build
-```
-
-### Check code style
-
-```bash
-npm run lint
-```
-
-You can also use script to auto fix some lint error:
-
-```bash
-npm run lint:fix
-```
-
-### Test code
-
-```bash
-npm test
-```
-
-## More
-
-You can view full document on our [official website](https://pro.ant.design). And welcome any feedback in our [github](https://github.com/ant-design/ant-design-pro).
