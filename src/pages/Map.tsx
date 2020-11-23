@@ -80,7 +80,7 @@ class SearchMap extends React.Component{
       }
     }
     this.mapElement.addMarker(address, employee);
-    this.setState({searching:false});
+    // this.setState({searching:false});
   };
 
   render(){

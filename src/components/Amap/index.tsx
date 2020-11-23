@@ -91,6 +91,26 @@ declare class Driving{
   constructor(opts:{map:GaoDeAMap, policy:number, showTraffic:boolean, province:string, number:string, autoFitView:boolean, hideMarkers:boolean});
   //search: (origin:LngLat, destination:LngLat, cbk:(status:string, result:string|DrivingResult)=>void, opts?:{waypoints:LngLat[]})=>void;
   search: (points:{keyword:string, city:string}[], cbk:(status:string, result:string|DrivingResult)=>void, opts?:{waypoints:LngLat[]})=>void;
+  setProvinceAndNumber: (province:string, number:string)=>void;
+  clear: ()=>void;
+}
+
+declare class Riding{
+  constructor(opts:{map:GaoDeAMap, policy:number, autoFitView:boolean, hideMarkers:boolean});
+  search: (points:{keyword:string, city:string}[], cbk:(status:string, result:string|DrivingResult)=>void, opts?:{waypoints:LngLat[]})=>void;
+  clear: ()=>void;
+}
+
+declare class Walking{
+  constructor(opts:{map:GaoDeAMap, policy:number, autoFitView:boolean, hideMarkers:boolean});
+  search: (points:{keyword:string, city:string}[], cbk:(status:string, result:string|DrivingResult)=>void, opts?:{waypoints:LngLat[]})=>void;
+  clear: ()=>void;
+}
+
+declare class Transfer{
+  constructor(opts:{map:GaoDeAMap, city:string, policy:number, nightflag:boolean, autoFitView:boolean, hideMarkers:boolean});
+  search: (points:{keyword:string, city:string}[], cbk:(status:string, result:string|DrivingResult)=>void, opts?:{waypoints:LngLat[]})=>void;
+  clear: ()=>void;
 }
 
 declare const AMap: {
@@ -101,6 +121,9 @@ declare const AMap: {
   Weather: typeof Weather;
   InfoWindow: typeof infoWindow;
   Driving:typeof Driving;
+  Riding:typeof Riding;
+  Walking:typeof Walking;
+  Transfer:typeof Transfer;
 };
 
 
@@ -111,7 +134,9 @@ class MapComponent extends React.Component {
     public geocoder: Geocoder;
     public weather: Weather;
     public weatherdata:string|false;
-    public driving:Driving;
+    public transpmap:Map<string, Driving|Walking|Riding|Transfer>;
+    public backaddress:Map<string, string>;
+    public umarker: Marker;
     public componentDidMount() {
         AMapLoader.load({
             "key": "07653df58bb7db5c29de64aa46c9b130",
@@ -128,10 +153,11 @@ class MapComponent extends React.Component {
               });
             this.geocoder = new AMap.Geocoder({city:"021"});
             this.weather = new AMap.Weather();
-            this.driving = new AMap.Driving({map:this.map, policy:0, showTraffic:true, province:'沪', number:'ANH1N1', autoFitView:true, hideMarkers:true});
             this.getWeather();
-            let umarker = new AMap.Marker({position:new AMap.LngLat(121.627406, 31.26983), title:'联合汽车电子有限公司'});
-            this.map.add(umarker);
+            this.umarker = new AMap.Marker({position:new AMap.LngLat(121.627406, 31.26983), title:'联合汽车电子有限公司'});
+            this.map.add(this.umarker);
+            this.backaddress = new Map<string, string>();
+            this.transpmap = new Map<string, Driving|Walking|Riding|Transfer>();
         }).catch(e => {
             console.log(e);
         })
@@ -176,7 +202,7 @@ class MapComponent extends React.Component {
             }else if (employee.transp == '6'){
               transptxt = '其它';
             }
-            function createcontent(map:GaoDeAMap, driving:Driving, markers:LngLat[]):HTMLDivElement{
+            function createcontent(map:GaoDeAMap, markers:LngLat[], backaddress:Map<string, string>, transpmap:Map<string, Driving|Walking|Riding|Transfer>):HTMLDivElement{
               let root = document.createElement("div");
               let name = document.createElement("p");
               let transp = document.createElement("p");
@@ -186,18 +212,122 @@ class MapComponent extends React.Component {
               transp.innerHTML = '员工出行方式： '+transptxt;
               buttondepart.style.cssText= "float:left;background-color:#ffffff;";
               buttondepart.type = "button";
-              buttondepart.value = "出发";
-              buttondepart.onclick= ()=>{map.clearInfoWindow();driving.search(address, new AMap.LngLat(121.627406, 31.26983), (status, data)=>{
-                if (status == 'complete'){
-                  message.success('路线规划成功');
-                }else{
-                  message.error('路线规划错误');
-                }
-              })};
+              if (backaddress.has(employee.employeeId)){
+                buttondepart.value = "回家";
+              }else{
+                buttondepart.value = "出发";
+              }
+              buttondepart.onclick= ()=>{
+                  map.clearInfoWindow();
+                  if (employee.transp == '0' || employee.transp == '4' ||employee.transp == '5' || employee.transp == '6'){
+                    let driving = new AMap.Driving({map:map, policy:0, showTraffic:true, province:'沪', number:'ANH1N1', autoFitView:true, hideMarkers:true});
+                    if (employee.extlpn == '0' || employee.extlpn == '2'){
+                      driving.setProvinceAndNumber('沪', 'ANH1N1');
+                    }else{
+                      driving.setProvinceAndNumber('苏', 'ABN458');
+                    }
+                    if (transpmap.has(employee.employeeId)){
+                      let o:Driving|Walking|Riding|Transfer = transpmap.get(employee.employeeId);
+                      o.clear();
+                      transpmap.delete(employee.employeeId);
+                    }
+                    if (!backaddress.has(employee.employeeId)){
+                      driving.search([{keyword: keyword, city: '上海市'}, {keyword: '联合汽车电子有限公司', city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.set(employee.employeeId,keyword);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }else{
+                      driving.search([{keyword: '联合汽车电子有限公司', city: '上海市'}, {keyword: keyword, city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.delete(employee.employeeId);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }
+                    transpmap.set(employee.employeeId,driving);
+                  }else if (employee.transp == '1') {
+                    let walking = new AMap.Walking({map:map, policy:0, autoFitView:true, hideMarkers:true});
+                    if (transpmap.has(employee.employeeId)){
+                      let o:Driving|Walking|Riding|Transfer = transpmap.get(employee.employeeId);
+                      o.clear();
+                      transpmap.delete(employee.employeeId);
+                    }
+                    if (!backaddress.has(employee.employeeId)){
+                      walking.search([{keyword: keyword, city: '上海市'}, {keyword: '联合汽车电子有限公司', city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.set(employee.employeeId,keyword);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }else{
+                      walking.search([{keyword: '联合汽车电子有限公司', city: '上海市'}, {keyword: keyword, city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.delete(employee.employeeId);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }   
+                    transpmap.set(employee.employeeId,walking);
+                  }else if (employee.transp == '2') {
+                    let transfer = new AMap.Transfer({map:map, city:'上海市', policy:0, nightflag:true, autoFitView:true, hideMarkers:true});
+                    if (transpmap.has(employee.employeeId)){
+                      let o:Driving|Walking|Riding|Transfer = transpmap.get(employee.employeeId);
+                      o.clear();
+                      transpmap.delete(employee.employeeId);
+                    }
+                    if (!backaddress.has(employee.employeeId)){
+                      transfer.search([{keyword: keyword, city: '上海市'}, {keyword: '联合汽车电子有限公司', city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.set(employee.employeeId,keyword);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }else{
+                      transfer.search([ {keyword: '联合汽车电子有限公司', city: '上海市'}, {keyword: keyword, city: '上海市'}], (status, data)=>{
+                        if (status == 'complete'){
+                          backaddress.delete(employee.employeeId);
+                        }else{
+                          message.error('路线规划错误');
+                        }
+                      });
+                    }
+                    transpmap.set(employee.employeeId,transfer);
+                  }else if (employee.transp == '3') {
+                      let riding = new AMap.Riding({map:map, policy:0, autoFitView:true, hideMarkers:true});
+                      if (transpmap.has(employee.employeeId)){
+                        let o:Driving|Walking|Riding|Transfer = transpmap.get(employee.employeeId);
+                        o.clear();
+                        transpmap.delete(employee.employeeId);
+                      }
+                      if (!backaddress.has(employee.employeeId)){
+                        riding.search([{keyword: keyword, city: '上海市'}, {keyword: '联合汽车电子有限公司', city: '上海市'}], (status, data)=>{
+                          if (status == 'complete'){
+                            backaddress.set(employee.employeeId,keyword);
+                          }else{
+                            message.error('路线规划错误');
+                          }});
+                      }else{
+                        riding.search([{keyword: '联合汽车电子有限公司', city: '上海市'}, {keyword: keyword, city: '上海市'}], (status, data)=>{
+                          if (status == 'complete'){
+                            backaddress.delete(employee.employeeId);
+                          }else{
+                            message.error('路线规划错误');
+                          }});
+                      }
+                    transpmap.set(employee.employeeId,riding);
+                  }
+              };
               buttoncancel.style.cssText= "float:right;background-color:#ffffff;";
               buttoncancel.type = "button";
               buttoncancel.value = "删除点";
-              buttoncancel.onclick= ()=>{map.remove(marker); 
+              buttoncancel.onclick= ()=>{map.remove(marker);
                 let index = markers.indexOf(address);
                 if(index > -1) {
                   if (index > 0 && index < markers.length-1){
@@ -210,6 +340,14 @@ class MapComponent extends React.Component {
                     markers.pop();
                   }
                 }
+                if (backaddress.has(employee.employeeId) && backaddress.get(employee.employeeId)== employee.address){
+                  backaddress.delete(employee.employeeId);
+                }
+                if (transpmap.has(employee.employeeId)){
+                  let o:Driving|Walking|Riding|Transfer = transpmap.get(employee.employeeId);
+                  o.clear();
+                  transpmap.delete(employee.employeeId);
+                }
                 map.clearInfoWindow();
               };
               root.appendChild(name);
@@ -218,15 +356,14 @@ class MapComponent extends React.Component {
               root.appendChild(buttoncancel);
               return root;
             }
-            let infowindow = new AMap.InfoWindow({isCustom:false, autoMove:true, closeWhenClickMap:true, content:createcontent(this.map, this.driving, this.markers), position:address,
-              size:{width:500.0, height:200.0}, offset:{x:0, y:-50}});
             marker.on('click', ()=>{
+              let infowindow = new AMap.InfoWindow({isCustom:false, autoMove:true, closeWhenClickMap:true, content:createcontent(this.map, this.markers, this.backaddress, this.transpmap), position:address,
+                size:{width:500.0, height:200.0}, offset:{x:0, y:-50}});
               infowindow.open(this.map);
             });
             this.map.add(marker);
             this.map.setFitView();
             this.markers.push(address);
-            console.log(this.markers);
           }
       });
     }
