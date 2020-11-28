@@ -85,4 +85,15 @@ declare namespace API {
     meta: {message: string, code:number}
     data: employeeInfo2[];
   }
+
+  export interface BuslineQuery {
+    meta: {message: string, code:number}
+    data: { id: string;
+            linename: string;
+            starttime: string;
+            startplace: string;
+            endtime: string;
+            passplace: {ppid:string, ppaddr:string, arrivetime:string, pssngrnum:string}[];
+          }[];
+  }
 }
