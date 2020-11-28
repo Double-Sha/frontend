@@ -86,7 +86,6 @@ export async function searchemployeeparam(params?: QueryEmployeeParamType){
     tmp.maxnum = params.maxnum;
   }
   let res = await searchemployee(tmp);
-  console.log(res.data);
   if (res.meta.code == 0){
     return {
       data: res.data,

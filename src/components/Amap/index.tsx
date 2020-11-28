@@ -131,10 +131,13 @@ class MapComponent extends React.Component {
     public mapDom: HTMLDivElement;
     public map: GaoDeAMap;
     public markers: LngLat[];
+    public normalmarkers: LngLat[];
+    public normalrealmarkers: Marker[];
     public geocoder: Geocoder;
     public weather: Weather;
     public weatherdata:string|false;
     public transpmap:Map<string, Driving|Walking|Riding|Transfer>;
+    public buslinemap:Map<string, Driving|Walking|Riding|Transfer>;
     public backaddress:Map<string, string>;
     public umarker: Marker;
     public componentDidMount() {
@@ -158,10 +161,13 @@ class MapComponent extends React.Component {
             this.map.add(this.umarker);
             this.backaddress = new Map<string, string>();
             this.transpmap = new Map<string, Driving|Walking|Riding|Transfer>();
+            this.buslinemap = new Map<string, Driving|Walking|Riding|Transfer>();
         }).catch(e => {
             console.log(e);
         })
         this.markers = [];
+        this.normalmarkers = [];
+        this.normalrealmarkers = [];
         
     }
     public componentWillUnmount() {
@@ -368,84 +374,38 @@ class MapComponent extends React.Component {
       });
     }
 
-    public addNormalMarker(keyword:string, employee:API.employeeInfo){
+    public addNormalMarkers(keywords:string[]){
       let address:LngLat;
-      this.geocoder.getLocation(keyword, (status, result)=>{
+      let i:any;
+      for (i in keywords){
+        this.geocoder.getLocation(keywords[i], (status, result)=>{
           if (status === 'error'||status === 'no_data'){
             message.error('查询员工地址失败');
           }else{
             address = result.geocodes[0].location;
             let i:any;
             
-            for (i in this.markers){
-              if (address.lng == this.markers[i].lng && address.lat == this.markers[i].lat){
-                message.info('该点已经存在');
+            for (i in this.normalmarkers){
+              if (address.lng == this.normalmarkers[i].lng && address.lat == this.normalmarkers[i].lat){
                 return;
               }
             }
             let marker = new AMap.Marker({position:address});
-            let transptxt:string;
-            if (employee.transp == '0'){
-              transptxt = '开车';
-            }else if (employee.transp == '1'){
-              transptxt = '步行';
-            }else if (employee.transp == '2'){
-              transptxt = '公共交通';
-            }else if (employee.transp == '3'){
-              transptxt = '骑自行车';
-            }else if (employee.transp == '4'){
-              transptxt = '班车';
-            }else if (employee.transp == '5'){
-              transptxt = '打车';
-            }else if (employee.transp == '6'){
-              transptxt = '其它';
-            }
-            function createcontent(map:GaoDeAMap, driving:Driving, markers:LngLat[]):HTMLDivElement{
-              let root = document.createElement("div");
-              let name = document.createElement("p");
-              let buttoncancel = document.createElement("input");
-              name.innerHTML = '员工姓名： '+employee.name;
-              buttoncancel.style.cssText= "float:middle;background-color:#ffffff;";
-              buttoncancel.type = "button";
-              buttoncancel.value = "删除点";
-              buttoncancel.onclick= ()=>{map.remove(marker); 
-                let index = markers.indexOf(address);
-                if(index > -1) {
-                  if (index > 0 && index < markers.length-1){
-                    let left = markers.splice(0,index-1);
-                    let right = markers.splice(index+1,markers.length-1);
-                    markers = left.concat(right);
-                  }else if (index == 0){
-                    markers.shift();
-                  }else{
-                    markers.pop();
-                  }
-                }
-                map.clearInfoWindow();
-              };
-              root.appendChild(name);
-              root.appendChild(buttoncancel);
-              return root;
-            }
-            let infowindow = new AMap.InfoWindow({isCustom:false, autoMove:true, closeWhenClickMap:true, content:createcontent(this.map, this.driving, this.markers), position:address,
-              size:{width:500.0, height:200.0}, offset:{x:0, y:-50}});
-            marker.on('click', ()=>{
-              infowindow.open(this.map);
-            });
             this.map.add(marker);
             this.map.setFitView();
-            this.markers.push(address);
-            console.log(this.markers);
+            this.normalmarkers.push(address);
+            this.normalrealmarkers.push(marker);
           }
       });
+      }
+      
     }
-    public drawbusline(keywords:string[]){
+    public drawbusline(keywords:string[], id:string){
       let points = keywords.map((keyword:string)=>({keyword:keyword, city:'上海市'}));
-      console.log(points);
-      let drivingtmp = new AMap.Driving({map:this.map, policy:0, showTraffic:true, province:'沪', number:'ANH1N1', autoFitView:true, hideMarkers:true});
-      // this.driving.search(points, (status, data)=>{
+      let drivingtmp = new AMap.Driving({map:this.map, policy:0, showTraffic:true, province:'沪', number:'ANH1N1', autoFitView:true, hideMarkers:false});
         drivingtmp.search(points, (status, data)=>{
         if (status == 'complete'){
+          this.buslinemap.set(id,drivingtmp);
         }else{
           message.error(data);
         }

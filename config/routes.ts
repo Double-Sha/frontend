@@ -23,10 +23,21 @@
     component: './Employee',
   },
   {
-    path: '/shuttlebus',
-    name: 'shuttlebus',
+    path: '/Bus',
+    name: 'bus',
     icon: 'form',
-    component: './ShuttleBus',
+    routes: [
+      {
+        name: 'BusLine',
+        path: '/Bus/BusLine',
+        component: './Bus/BusLine',
+      },
+      {
+        name: 'ShuttleBus',
+        path: '/Bus/ShuttleBus',
+        component: './Bus/ShuttleBus',
+      },
+    ],
   },
   {
     path: '/',

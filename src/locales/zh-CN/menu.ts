@@ -1,6 +1,8 @@
 export default {
   'menu.welcome': '欢迎',
-  'menu.shuttlebus': '班车规划',
+  'menu.bus': '班车站点与路径管理',
+  'menu.bus.BusLine': '班车信息管理',
+  'menu.bus.ShuttleBus': '班车自动规划',
   'menu.employee': '员工信息管理',
   'menu.map': '员工通勤查询',
   'menu.more-blocks': '更多区块',

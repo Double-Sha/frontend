@@ -72,16 +72,6 @@ export async function getInitialState(): Promise<{
     address: '西湖区工专路 77 号',
     phone: '0752-268888888',
   };
-  // console.log('22');
-  // 如果是登录页面，不执行
-  // if (history.location.pathname !== '/user/login') {
-  //   const currentUser = await fetchUserInfo();
-  //   return {
-  //     fetchUserInfo,
-  //     currentUser,
-  //     settings: defaultSettings,
-  //   };
-  // }
   return {
     fetchUserInfo,
     currentUser,
